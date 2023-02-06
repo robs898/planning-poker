@@ -77,8 +77,8 @@ async def websocket_endpoint(websocket: WebSocket, name: str):
     """Handle websockets for accepting/sending voting state"""
     await manager.connect(websocket)
     votes.add_voter(name)
-    await manager.broadcast(votes.render_html())
     try:
+        await manager.broadcast(votes.render_html())
         while True:
             data = await websocket.receive_text()
             if data == "reset":
