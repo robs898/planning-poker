@@ -1,18 +1,19 @@
+<!DOCTYPE html>
 <html>
     <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
         <title>Scrummy</title>
     </head>
     <body>
+        <script>0</script>
         <label for="name">Please enter your name:</label>
         <input id="name"></input>
         <button onclick=connect()>Connect</button>
+        <script>
+            function connect() {
+                var name = document.getElementById('name').value
+                window.location.href = `/session?name=${name}`;
+            }
+        </script>
     </body>
-    <script>
-        function connect() {
-            var name = document.getElementById('name').value
-            window.location.href = `/session?name=${name}`;
-        }
-    </script>
 </html>

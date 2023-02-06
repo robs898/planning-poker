@@ -1,7 +1,10 @@
-{%- if state_dict -%}
-{%- for name, vote in state_dict.items() -%}
-<p>{{ name }} voted {% if show %}{{ vote }}{% else %}#{% endif %}
-{%- endfor -%}
-{%- else -%}
-<p>No votes
-{%- endif -%}
+<table>
+    <tbody>
+        {%- for name, vote in votes_dict.items() -%}
+        <tr>
+            <td>{{ name }}</td> 
+            <td>{% if votes_show %}{{ vote }}{% else %}#{% endif %}            
+        </tr>
+        {%- endfor -%}
+    </tbody>
+</table>
