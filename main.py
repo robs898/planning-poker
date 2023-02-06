@@ -36,9 +36,11 @@ class Votes:
     def render_html(self):
         return self.template.render(state_dict=self.state_dict, show=self.show)
 
-    def reset_votes(self):
+    def reset_votes(self, websockets):
         """Set all votes to ?"""
-        self.state_dict = dict.fromkeys(self.state_dict, "?")
+        self.state_dict = {}
+        for websocket in websockets:
+            self.state_dict[websocket.path_params["name"]] = "?"
 
     def set_vote(self, name, vote):
         self.state_dict[name] = vote
@@ -82,7 +84,7 @@ async def websocket_endpoint(websocket: WebSocket, name: str):
         while True:
             data = await websocket.receive_text()
             if data == "reset":
-                votes.reset_votes()
+                votes.reset_votes(manager.active_connections)
                 votes.show = False
             elif data == "show":
                 votes.show = True
