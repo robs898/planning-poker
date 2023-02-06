@@ -25,7 +25,7 @@
         </div>
     </body>
     <script>
-        var ws = new WebSocket(`ws://localhost:8888/ws/{{ name }}`);
+        var ws = new WebSocket(`ws://${window.location.hostname}:${window.location.port}/ws/{{ name }}`);
         ws.onmessage = function(event) {
             var votes = document.getElementById('votes')
             votes.innerHTML = event.data
