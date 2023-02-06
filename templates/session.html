@@ -1,10 +1,12 @@
+<!DOCTYPE html>
 <html>
     <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Scrummy</title>
     </head>
     <body>
+        <script>0</script>
         <button onclick=sendMessage("hide")>hide</button>
         <button onclick=sendMessage("show")>show</button>
         <button onclick=sendMessage("reset")>reset</button>
@@ -17,19 +19,18 @@
         <button onclick=sendMessage("8")>8</button>
         <button onclick=sendMessage("13")>13</button>
         <button onclick=sendMessage("21")>21</button>
+        <br>
+        <br>
         <div id="votes">
-            <p>No votes
         </div>
     </body>
     <script>
         var ws = new WebSocket(`ws://localhost:8888/ws/{{ name }}`);
         ws.onmessage = function(event) {
-            console.log(event)
             var votes = document.getElementById('votes')
             votes.innerHTML = event.data
         };
         function sendMessage(vote) {
-            console.log(vote)
             ws.send(vote)
         }
     </script>

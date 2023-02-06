@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
 
@@ -8,8 +6,10 @@ templates = Jinja2Templates(directory="templates")
 
 
 class ConnectionManager:
+    """Handle websocket connections"""
+
     def __init__(self):
-        self.active_connections: List[WebSocket] = []
+        self.active_connections = []
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -24,6 +24,8 @@ class ConnectionManager:
 
 
 class Votes:
+    """Handle the state of votes"""
+
     state_dict = {}
     template = templates.get_template("votes.html")
     show = False
@@ -34,8 +36,16 @@ class Votes:
     def render_html(self):
         return self.template.render(state_dict=self.state_dict, show=self.show)
 
+    def reset_votes(self):
+        """Set all votes to ?"""
+        self.state_dict = dict.fromkeys(self.state_dict, "?")
+
     def set_vote(self, name, vote):
         self.state_dict[name] = vote
+
+    def add_voter(self, name):
+        if name not in self.state_dict:
+            self.set_vote(name, "?")
 
 
 manager = ConnectionManager()
@@ -44,11 +54,19 @@ votes = Votes()
 
 @app.get("/")
 async def index(request: Request):
+    """Get the user's name"""
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/favicon.ico")
+async def favicon(request: Request):
+    """To stop the failed GETs in console"""
+    return
 
 
 @app.get("/session")
 async def session(request: Request, name: str):
+    """Handle all voting"""
     return templates.TemplateResponse(
         "session.html", {"request": request, "name": name}
     )
@@ -56,13 +74,15 @@ async def session(request: Request, name: str):
 
 @app.websocket("/ws/{name}")
 async def websocket_endpoint(websocket: WebSocket, name: str):
+    """Handle websockets for accepting/sending voting state"""
     await manager.connect(websocket)
-    await websocket.send_text(votes.render_html())
+    votes.add_voter(name)
+    await manager.broadcast(votes.render_html())
     try:
         while True:
             data = await websocket.receive_text()
             if data == "reset":
-                votes.state_dict = {}
+                votes.reset_votes()
                 votes.show = False
             elif data == "show":
                 votes.show = True
