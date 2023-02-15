@@ -34,7 +34,11 @@ class Votes:
         self.html = self.render_html()
 
     def render_html(self):
-        return self.template.render(state_dict=self.state_dict, show=self.show)
+        unique_votes = set(self.state_dict.values())
+        rainbow = len(unique_votes) == 1 & self.show
+        return self.template.render(
+            state_dict=self.state_dict, show=self.show, rainbow=rainbow
+        )
 
     def reset_votes(self, websockets):
         """Set all votes to ?"""

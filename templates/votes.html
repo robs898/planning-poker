@@ -1,4 +1,4 @@
-<table style="width: 50%">
+<table style="width: 50%" {% if rainbow %}class="rainbow"{% endif %}>
     <tbody>
         {% for name, vote in state_dict.items() %}
         <tr>
@@ -6,11 +6,12 @@
             {% if vote == "?" %}
             <td>?</td>
             {% elif show %}
-            <td>{{ vote }}</td>
+            <td >{{ vote }}</td>
             {% else %}
             <td>#</td>
             {% endif %}
         </tr>
         {% endfor %}
     </tbody>
-</table
+</table>
+
