@@ -2,6 +2,8 @@
 
 Simple FastAPI websockets server to vote on tickets like scrum poker
 
+![Screenshot](screenshot.png?raw=true "Screenshot")
+
 # Setup
 Tested with Python 3.10
 ```bash
