@@ -83,6 +83,7 @@ async def websocket_endpoint(websocket: WebSocket, name: str):
     """Handle websockets for accepting/sending voting state"""
     await manager.connect(websocket)
     votes.add_voter(name)
+    votes.show = False
     try:
         await manager.broadcast(votes.render_html())
         while True:
