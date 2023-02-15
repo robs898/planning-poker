@@ -1,77 +1,66 @@
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from functools import lru_cache
+from aiocache import Cache
+from fastapi import FastAPI, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
+template = templates.get_template("votes.html")
+cache = Cache()
 
 
-class ConnectionManager:
-    """Handle websocket connections"""
-
-    def __init__(self):
-        self.active_connections = []
-
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
-
-    async def broadcast(self, message: str):
-        for connection in self.active_connections:
-            await connection.send_text(message)
+async def connect(websocket):
+    await websocket.accept()
+    active_connections = cache.get("active_connections", default=[])
+    await active_connections.append(websocket)
+    await cache.set("active_connections", active_connections)
 
 
-class Votes:
-    """Handle the state of votes"""
-
-    state_dict = {}
-    template = templates.get_template("votes.html")
-    show = False
-
-    def __init__(self):
-        self.html = self.render_html()
-
-    def render_html(self):
-        unique_votes = set(self.state_dict.values())
-        rainbow = len(unique_votes) == 1 & self.show
-        return self.template.render(
-            state_dict=self.state_dict, show=self.show, rainbow=rainbow
-        )
-
-    def reset_votes(self, websockets):
-        """Set all votes to ?"""
-        self.state_dict = {}
-        for websocket in websockets:
-            self.state_dict[websocket.path_params["name"]] = "?"
-
-    def set_vote(self, name, vote):
-        self.state_dict[name] = vote
-
-    def add_voter(self, name):
-        if name not in self.state_dict:
-            self.set_vote(name, "?")
+async def disconnect(websocket):
+    active_connections = cache.get("active_connections", default=[])
+    await active_connections.remove(websocket)
+    await cache.set("active_connections", active_connections)
 
 
-manager = ConnectionManager()
-votes = Votes()
+async def broadcast(message):
+    active_connections = cache.get("active_connections", default=[])
+    for connection in active_connections:
+        await connection.send_text(message)
+
+
+@lru_cache()
+async def render_html(show):
+    unique_votes = set(state_dict.values())
+    rainbow = len(unique_votes) == 1 & show
+    return template.render(state_dict=state_dict, show=show, rainbow=rainbow)
+
+
+async def reset_votes():
+    active_connections = cache.get("active_connections", default=[])
+    state_dict = cache.get("state_dict", default={})
+    for websocket in active_connections:
+        state_dict[websocket.path_params["name"]] = "?"
+
+    await cache.set("state_dict", state_dict)
+
+
+async def set_vote(name, vote):
+    state_dict[name] = vote
+
+
+async def add_voter(name):
+    if name not in state_dict:
+        set_vote(name, "?")
 
 
 @app.get("/")
-async def index(request: Request):
+async def index(request):
     """Get the user's name"""
     return templates.TemplateResponse("index.html", {"request": request})
 
 
-@app.get("/favicon.ico")
-async def favicon(request: Request):
-    """To stop the failed GETs in console"""
-    return
-
-
 @app.get("/session")
-async def session(request: Request, name: str):
+async def session(request, name):
     """Handle all voting"""
     return templates.TemplateResponse(
         "session.html", {"request": request, "name": name}
@@ -79,24 +68,24 @@ async def session(request: Request, name: str):
 
 
 @app.websocket("/ws/{name}")
-async def websocket_endpoint(websocket: WebSocket, name: str):
+async def websocket_endpoint(websocket, name):
     """Handle websockets for accepting/sending voting state"""
-    await manager.connect(websocket)
-    votes.add_voter(name)
+    await connect(websocket)
+    await add_voter(name)
     try:
-        await manager.broadcast(votes.render_html())
+        await broadcast(render_html())
         while True:
             data = await websocket.receive_text()
             if data == "reset":
-                votes.reset_votes(manager.active_connections)
-                votes.show = False
+                reset_votes()
+                show = False
             elif data == "show":
-                votes.show = True
+                show = True
             elif data == "hide":
-                votes.show = False
+                show = False
             else:
-                votes.set_vote(name, data)
+                set_vote(name, data)
 
-            await manager.broadcast(votes.render_html())
+            await broadcast(render_html(show))
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        disconnect(websocket)
