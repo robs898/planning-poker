@@ -13,8 +13,14 @@
     </body>
     <script>
         function connect() {
-            var name = document.getElementById('name').value
-            window.location.href = `/session?name=${name}`;
+            var name = document.getElementById('name')
+            window.location.href = `/session?name=${name.value}`;
         }
+        const input = document.querySelector('input');
+        input.addEventListener('keydown', (e) => {
+            if (e.key === "Enter") {
+                connect();
+            }
+        });
     </script>
 </html>
