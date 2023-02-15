@@ -34,8 +34,12 @@ class Votes:
         self.html = self.render_html()
 
     def render_html(self):
-        unique_votes = set(self.state_dict.values())
-        rainbow = len(unique_votes) == 1 & self.show
+        rainbow = False
+        if self.state_dict:
+            if list(self.state_dict.values())[0] != "?":
+                unique_votes = set(self.state_dict.values())
+                rainbow = len(unique_votes) == 1 & self.show
+
         return self.template.render(
             state_dict=self.state_dict, show=self.show, rainbow=rainbow
         )
