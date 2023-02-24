@@ -1,4 +1,4 @@
-FROM registry.fluidcloud.bskyb.com/ena/vantage_slim38_base:latest
+FROM python:slim
 
 COPY requirements.txt .
 
