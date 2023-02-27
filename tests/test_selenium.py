@@ -9,12 +9,12 @@ options = FirefoxOptions()
 options.add_argument("--headless")
 browsers = [webdriver.Firefox(options=options) for _ in range(num_browsers)]
 
-start_time = time.time()
 
 for browser in browsers:
     browser.get("http://127.0.0.1:8888/")
 
 print(f"Spawned {num_browsers} browsers")
+start_time = time.time()
 
 for i, browser in enumerate(browsers):
     browser.find_element(By.ID, "name").send_keys(f"dave{i}")
@@ -36,6 +36,8 @@ for browser in browsers:
         print(f"Found <td>dave{i}</td> in page source")
 
 
+end_time = time.time()
+
 # test we disconnect failed heartbeat users
 browsers[0].quit()
 time.sleep(2)
@@ -45,6 +47,5 @@ assert "<td>dave0</td>" not in browsers[1].page_source
 for browser in browsers:
     browser.quit()
 
-end_time = time.time()
 time_taken = end_time - start_time
 print(f"tests took {time_taken} seconds")

@@ -1,24 +1,55 @@
 import time
-
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-active_websockets = {}
-state_dict = {}
-heartbeat_dict = {}
 votes_template = templates.get_template("votes.html")
+
+
+class AppState:
+    active_websockets = {}
+    state_dict = {}
+    heartbeat_dict = {}
+    show = False
+
+    def check_heartbeats(self):
+        failed_hearbeats_list = []
+        for name, heartbeat in self.heartbeat_dict.items():
+            heartbeat_age = time.time() - heartbeat
+            if heartbeat_age > 2:
+                failed_hearbeats_list.append(name)
+
+        for name in failed_hearbeats_list:
+            del self.state_dict[name]
+            del self.heartbeat_dict[name]
+
+    def render_votes_html(self):
+        rainbow = False
+        votes_list = list(self.state_dict.values())
+        if len(votes_list) > 1 and votes_list[0] != "?":
+            unique_votes = set(votes_list)
+            rainbow = len(unique_votes) == 1 and self.show
+
+        return votes_template.render(
+            state_dict=self.state_dict, show=self.show, rainbow=rainbow
+        )
+
+    async def broadcast(self, message):
+        for _, websocket in self.active_websockets.items():
+            await websocket.send_text(message)
+
+    async def broadcast_votes_html(self):
+        votes_html = self.render_votes_html()
+        await self.broadcast(votes_html)
+
+
+app_state = AppState()
 
 
 @app.get("/")
 async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
-
-
-@app.get("/favicon.ico")
-async def favicon():
-    return
 
 
 @app.get("/session")
@@ -31,62 +62,26 @@ async def session(request: Request, name: str):
 @app.websocket("/ws/{name}")
 async def websocket_endpoint(websocket: WebSocket, name: str):
     await websocket.accept()
-    global active_websockets
-    active_websockets[name] = websocket
-    global state_dict
-    if name not in state_dict:
-        state_dict[name] = "?"
-
+    app_state.active_websockets[name] = websocket
+    app_state.heartbeat_dict[name] = time.time()
+    app_state.state_dict[name] = "?"
+    await app_state.broadcast_votes_html()
     try:
-        global show
-        show = False
-        await broadcast(render_html(state_dict, show))
         while True:
             data = await websocket.receive_text()
             if data == "reset":
-                state_dict = {k: "?" for k in state_dict}
-                show = False
+                app_state.state_dict = {k: "?" for k in app_state.state_dict}
+                app_state.show = False
             elif data == "show":
-                show = True
+                app_state.show = True
             elif data == "hide":
-                show = False
+                app_state.show = False
             elif data == "ping":
-                global heartbeat_dict
-                heartbeat_dict[name] = time.time()
+                app_state.heartbeat_dict[name] = time.time()
+                app_state.check_heartbeats()
             else:
-                state_dict[name] = data
+                app_state.state_dict[name] = data
 
-            await broadcast(render_html(state_dict, show))
+            await app_state.broadcast_votes_html()
     except WebSocketDisconnect:
-        del active_websockets[name]
-
-
-def render_html(state_dict, show):
-    check_heartbeats()
-    rainbow = False
-    if state_dict and list(state_dict.values())[0] != "?":
-        unique_votes = set(state_dict.values())
-        rainbow = len(unique_votes) == 1 and show
-
-    return votes_template.render(
-        state_dict=state_dict, show=show, rainbow=rainbow
-    )
-
-
-async def broadcast(message: str):
-    for _, websocket in active_websockets.items():
-        await websocket.send_text(message)
-
-
-def check_heartbeats():
-    global heartbeat_dict
-    failed_hearbeats_list = []
-    for name, heartbeat in heartbeat_dict.items():
-        heartbeat_age = time.time() - heartbeat
-        if heartbeat_age > 2:
-            failed_hearbeats_list.append(name)
-
-    for name in failed_hearbeats_list:
-        global state_dict
-        del state_dict[name]
-        del heartbeat_dict[name]
+        del app_state.active_websockets[name]
