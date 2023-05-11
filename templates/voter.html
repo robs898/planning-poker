@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Vote</title>
+    </head>
+    <body>
+        <script>0</script>
+        <div id="buttons" style="font-size: 20vw;">
+            <button onclick=vote("1")>1</button>
+            <button onclick=vote("2")>2</button>
+            <button onclick=vote("3")>3</button>
+            <button onclick=vote("5")>5</button>
+            <button onclick=vote("8")>8</button>
+            <button onclick=vote("13")>13</button>
+            <button onclick=vote("21")>21</button>
+            <button onclick=vote("??")>??</button>
+        </div>
+        <div id="display_vote" style="font-size: 16vh; text-align: center;">
+            <h1 id="vote_text" style="visibility: hidden"></h1>
+        </div>
+        <div style="font-size: 8vh; text-align: center;">
+            <h1 style="visibility: hidden">FILL THE SCREEN</h1>
+        </div>
+    </body>
+    <script>
+        var buttons = document.getElementById('buttons')
+        var display_vote = document.getElementById('display_vote')
+        var vote_text = document.getElementById('vote_text')
+        function vote(vote) {
+            buttons.style.display = 'none';
+            vote_text.style.visibility = 'hidden';
+            display_vote.style.display = 'block';
+            vote_text.innerText = vote
+            document.body.addEventListener('click', show_vote, true); 
+        }
+        function show_vote() {
+            document.body.removeEventListener('click', show_vote, true); 
+            vote_text.style.visibility = 'visible';
+            document.body.addEventListener('click', show_buttons, true); 
+        }
+        function show_buttons() {
+            document.body.removeEventListener('click', show_buttons, true); 
+            display_vote.style.display = 'none';
+            buttons.style.display = 'block';
+        }
+    </script>
+</html>

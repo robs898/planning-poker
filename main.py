@@ -1,3 +1,4 @@
+import contextlib
 import time
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
@@ -21,8 +22,9 @@ class AppState:
                 failed_hearbeats_list.append(name)
 
         for name in failed_hearbeats_list:
-            del self.state_dict[name]
-            del self.heartbeat_dict[name]
+            with contextlib.suppress(KeyError):
+                del self.state_dict[name]
+                del self.heartbeat_dict[name]
 
     def render_votes_html(self):
         rainbow = False
@@ -56,6 +58,13 @@ async def index(request: Request):
 async def session(request: Request, name: str):
     return templates.TemplateResponse(
         "session.html", {"request": request, "name": name}
+    )
+
+
+@app.get("/voter")
+async def voter(request: Request):
+    return templates.TemplateResponse(
+        "voter.html", {"request": request}
     )
 
 
